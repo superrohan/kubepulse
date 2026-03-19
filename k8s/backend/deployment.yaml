@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubepulse-backend
+  namespace: kubepulse
+  labels:
+    app: kubepulse-backend
+    app.kubernetes.io/name: kubepulse
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/version: "1.0.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kubepulse-backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: kubepulse-backend
+        app.kubernetes.io/name: kubepulse
+        app.kubernetes.io/component: backend
+    spec:
+      # Use the read-only service account
+      serviceAccountName: pod-dashboard-sa
+
+      # Security context for the pod
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: kubepulse-backend
+          image: <YOUR_ACR>.azurecr.io/kubepulse-backend:1.0.0
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+
+          env:
+            - name: KUBERNETES_IN_CLUSTER
+              value: "true"
+            - name: SECURITY_ENABLED
+              value: "true"
+            - name: SECURITY_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: kubepulse-secret
+                  key: username
+            - name: SECURITY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kubepulse-secret
+                  key: password
+            - name: CORS_ALLOWED_ORIGIN
+              value: "https://kubepulse.internal.yourbank.com"
+            - name: ALERTS_ENABLED
+              value: "true"
+            - name: TEAMS_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: kubepulse-secret
+                  key: teams-webhook-url
+                  optional: true
+            - name: JAVA_OPTS
+              value: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+
+          resources:
+            requests:
+              cpu: 200m
+              memory: 384Mi
+            limits:
+              cpu: 500m
+              memory: 768Mi
+
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 3
+            timeoutSeconds: 5
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+
+          # Container security context
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+
+      # Spread pods across nodes for HA
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: kubepulse-backend
+
+      restartPolicy: Always

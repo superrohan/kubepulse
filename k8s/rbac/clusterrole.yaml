@@ -1,0 +1,29 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pod-dashboard-viewer
+  labels:
+    app.kubernetes.io/name: kubepulse
+    app.kubernetes.io/component: rbac
+  annotations:
+    description: "Grants read-only access to pods, logs, namespaces and events for KubePulse"
+rules:
+  # Pod access — required for pod listing and status
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+
+  # Pod logs — required for the log viewer feature
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+
+  # Namespace listing — required for the namespace filter
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch"]
+
+  # Events — required for the pod events tab
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]

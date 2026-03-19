@@ -1,0 +1,55 @@
+server:
+  port: 8080
+  compression:
+    enabled: true
+    mime-types: application/json
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: kubepulse-backend
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: NON_NULL
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: KubePulse
+    version: 1.0.0
+    description: Kubernetes Pod Monitoring Dashboard
+
+logging:
+  level:
+    root: INFO
+    com.kubepulse: DEBUG
+    io.kubernetes.client: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+kubernetes:
+  in-cluster: ${KUBERNETES_IN_CLUSTER:false}
+  request-timeout-seconds: ${KUBERNETES_REQUEST_TIMEOUT:30}
+
+kubepulse:
+  security:
+    enabled: ${SECURITY_ENABLED:false}
+    username: ${SECURITY_USERNAME:kubepulse}
+    password: ${SECURITY_PASSWORD:changeme}
+  cors:
+    allowed-origins:
+      - ${CORS_ALLOWED_ORIGIN:http://localhost:3000}

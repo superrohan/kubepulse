@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubepulse-frontend
+  namespace: kubepulse
+  labels:
+    app: kubepulse-frontend
+    app.kubernetes.io/name: kubepulse
+    app.kubernetes.io/component: frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: kubepulse-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
